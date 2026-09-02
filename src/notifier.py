@@ -43,7 +43,7 @@ def send_notification(old_description: Optional[str], new_description: Optional[
     
     # Ensure headers are safe ASCII strings, avoiding weird render encoding issues
     headers = {
-        "Title": "Spotify Playlist Changed",
+        "Title": "Spotify Message",
         "Priority": "high",
         "Tags": "musical_note"
     }
