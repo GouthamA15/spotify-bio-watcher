@@ -5,6 +5,7 @@ from .config import validate_config, POLL_INTERVAL_SECONDS, SPOTIFY_PLAYLIST_ID
 from .spotify import fetch_playlist_description, SpotifyAuthError, SpotifyRequestError
 from .state import load_state, save_state
 from .notifier import send_notification
+from .status import watcher_status
 
 def get_full_time_str() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -15,6 +16,7 @@ def log(message: str):
 def run_watcher():
     validate_config()
     
+    watcher_status["watcher_running"] = True
     state = load_state(SPOTIFY_PLAYLIST_ID)
     
     if state is None:
@@ -31,7 +33,11 @@ def run_watcher():
             if not is_first_run:
                 log("Checking playlist...")
 
+            watcher_status["last_check_at"] = get_full_time_str()
             current_description = fetch_playlist_description()
+            
+            watcher_status["last_successful_check_at"] = get_full_time_str()
+            watcher_status["successful_checks"] += 1
             
             if current_description is None:
                 log("WARNING: Spotify returned no description (null).")
@@ -52,6 +58,8 @@ def run_watcher():
                     save_state(SPOTIFY_PLAYLIST_ID, current_description)
                 else:
                     detection_time = get_full_time_str()
+                    watcher_status["last_change_at"] = detection_time
+                    
                     print("\n==================================================")
                     print("CHANGE DETECTED")
                     print("==================================================\n")
@@ -71,11 +79,13 @@ def run_watcher():
             time.sleep(POLL_INTERVAL_SECONDS)
             
         except SpotifyAuthError as e:
+            watcher_status["failed_checks"] += 1
             log(f"ERROR: {e}")
             log("Please check your Spotify credentials. Retrying in 60 seconds...")
             time.sleep(60)
             
         except SpotifyRequestError as e:
+            watcher_status["failed_checks"] += 1
             log(f"ERROR: {e}")
             if e.retry_after:
                 log(f"Respecting rate limit. Waiting {e.retry_after} seconds...")
@@ -85,6 +95,7 @@ def run_watcher():
                 time.sleep(POLL_INTERVAL_SECONDS)
                 
         except Exception as e:
+            watcher_status["failed_checks"] += 1
             log(f"UNEXPECTED ERROR: {e}")
             time.sleep(POLL_INTERVAL_SECONDS)
 

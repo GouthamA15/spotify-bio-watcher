@@ -2,7 +2,7 @@
 
 A simple Python command-line application that monitors the description (bio) of a specific Spotify playlist. It polls the Spotify Web API every 60 seconds and notifies you via console and push notifications if the description has changed.
 
-**Currently in Phase 3:** Added push notifications to your mobile phone via [ntfy.sh](https://ntfy.sh).
+**Currently in Phase 4:** The application now features a minimal HTTP web server (FastAPI) allowing it to be deployed as a **Web Service on Render**. The internal Spotify watcher runs transparently in the background while the web server fulfills Render's port requirement.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ A simple Python command-line application that monitors the description (bio) of 
 2. **Set up Ntfy**:
    - Download the **ntfy** app on your phone.
    - Subscribe to a new topic.
-   - **Important:** Use a random and unpredictable topic name (e.g., `playlist-watch-84hf9qj`). Do not use common names like `spotify`, as public ntfy topics can be viewed by anyone who guesses the name.
+   - **Important:** Use a random and unpredictable topic name.
 
 3. **Configure Environment Variables**:
    - Rename `.env.example` to `.env`.
@@ -53,27 +53,42 @@ A simple Python command-line application that monitors the description (bio) of 
      NTFY_TOPIC=your_private_random_topic
      ```
 
-   > **Warning**: Never commit your `.env` file to version control.
+## Running Locally
 
-## Running the Watcher
-
-Once your environment is activated and `.env` is configured, start the watcher:
+Once your environment is activated and `.env` is configured, start the application:
 
 ```powershell
-python -m src.watcher
+python -m src.app
 ```
+*Note: You can still run `python -m src.watcher` if you only want the watcher without the web server, but `src.app` is the recommended entry point to run both.*
+
+Once running, you can access the minimal status pages:
+- **Root Status Page**: `http://127.0.0.1:8000/`
+- **Health Check**: `http://127.0.0.1:8000/health`
+- **JSON Status**: `http://127.0.0.1:8000/status`
+
+## Render Deployment
+
+This application is ready to be deployed as a **Render Web Service** (Free tier compatible).
+
+1. Connect your repository to Render.
+2. Select **Web Service**.
+3. Set the **Build Command**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Set the **Start Command**:
+   ```bash
+   python -m src.app
+   ```
+5. Add your Environment Variables in the Render dashboard (`SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_PLAYLIST_ID`, `NTFY_TOPIC`). Render will automatically provide the `PORT` variable.
+
+Render will start the Web Service, detect the open port via the FastAPI server, and immediately begin running the Spotify Watcher loop in the background!
 
 ## Running Tests
 
-You can verify the watcher's logic and notification functionality using pytest:
+You can verify the watcher's logic and the web server using pytest:
 
 ```powershell
 python -m pytest
 ```
-
-## Behavior & Error Handling
-
-- **Persistent State:** It stores the last valid state in `data/state.json`. On start, it resumes exactly where it left off.
-- **Null Descriptions:** If Spotify returns `null`, the watcher ignores it and retains the previous valid description. However, if Spotify returns an explicit empty string `""`, it registers as a change and you are notified.
-- **Notification Failure:** If the watcher fails to send a push notification (due to a network error or ntfy server downtime), it will simply log the error and **keep running**. The state will still be updated, so it won't repeatedly spam notifications every 60 seconds if ntfy goes down.
-- **Spotify API Errors:** Tokens are refreshed automatically on `401`. Rate limits (`429`) correctly trigger a pause, and `5xx` errors keep the application alive to retry later.
