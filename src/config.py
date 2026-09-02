@@ -11,6 +11,9 @@ SPOTIFY_PLAYLIST_ID = os.getenv("SPOTIFY_PLAYLIST_ID")
 POLL_INTERVAL_SECONDS = 60
 REQUEST_TIMEOUT_SECONDS = 10
 
+NTFY_TOPIC = os.getenv("NTFY_TOPIC")
+NTFY_SERVER_URL = os.getenv("NTFY_SERVER_URL", "https://ntfy.sh").rstrip("/")
+
 def validate_config():
     missing = []
     if not SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_ID == "your_client_id":

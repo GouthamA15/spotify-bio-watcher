@@ -21,6 +21,7 @@ _cached_token = None
 def _get_access_token() -> str:
     """
     Fetch an access token using the Client Credentials flow.
+    Caches token in memory.
     """
     global _cached_token
     if _cached_token:
@@ -51,9 +52,10 @@ def force_refresh_token():
     global _cached_token
     _cached_token = None
 
-def fetch_playlist_description() -> Optional[str]:
+def fetch_playlist_description(is_retry=False) -> Optional[str]:
     """
     Fetch the playlist description using the Spotify Web API.
+    Handles HTTP status codes as requested.
     Returns the description as a string, or None if it's explicitly null.
     """
     token = _get_access_token()
@@ -65,21 +67,35 @@ def fetch_playlist_description() -> Optional[str]:
 
     try:
         response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
+    except requests.exceptions.Timeout:
+        raise SpotifyRequestError("Spotify request timed out.")
     except requests.exceptions.RequestException as e:
         raise SpotifyRequestError(f"Spotify request failed (network error): {e}")
         
     if response.status_code == 401:
-        force_refresh_token()
-        raise SpotifyRequestError("Authentication error (401). Forcing token refresh on next cycle.")
+        if not is_retry:
+            force_refresh_token()
+            return fetch_playlist_description(is_retry=True)
+        else:
+            raise SpotifyRequestError("Authentication error (401). Retried and failed.")
+
+    if response.status_code == 403:
+        raise SpotifyRequestError("Spotify denied access (403).")
+
+    if response.status_code == 404:
+        raise SpotifyRequestError("Playlist not found (404).")
 
     if response.status_code == 429:
         retry_after = int(response.headers.get("Retry-After", 5))
         raise SpotifyRequestError("Rate limited (429).", retry_after=retry_after)
+
+    if response.status_code >= 500:
+        raise SpotifyRequestError(f"Spotify server error ({response.status_code}).")
     
     try:
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        raise SpotifyRequestError(f"Spotify request failed ({response.status_code}): {e}")
+        raise SpotifyRequestError(f"Spotify request failed ({response.status_code}).")
 
     try:
         data = response.json()

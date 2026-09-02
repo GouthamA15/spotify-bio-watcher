@@ -1,11 +1,14 @@
 # Spotify Bio Watcher
 
-A simple Python command-line application that monitors the description (bio) of a specific Spotify playlist. It polls the Spotify Web API every 60 seconds and notifies you in the console if the description has changed.
+A simple Python command-line application that monitors the description (bio) of a specific Spotify playlist. It polls the Spotify Web API every 60 seconds and notifies you via console and push notifications if the description has changed.
+
+**Currently in Phase 3:** Added push notifications to your mobile phone via [ntfy.sh](https://ntfy.sh).
 
 ## Requirements
 
 - Python 3.11+ (or 3.10+)
 - Windows PowerShell (or any standard terminal)
+- **Ntfy app** (available on iOS and Android)
 
 ## Setup
 
@@ -31,17 +34,26 @@ A simple Python command-line application that monitors the description (bio) of 
 1. **Create Spotify Developer Credentials**:
    - Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard/).
    - Log in and create a new App.
-   - Note down the `Client ID` and `Client Secret` from your App's settings.
+   - Note down the `Client ID` and `Client Secret`.
 
-2. **Configure Environment Variables**:
-   - Rename `.env.example` to `.env` (or copy it):
-     ```powershell
-     cp .env.example .env
+2. **Set up Ntfy**:
+   - Download the **ntfy** app on your phone.
+   - Subscribe to a new topic.
+   - **Important:** Use a random and unpredictable topic name (e.g., `playlist-watch-84hf9qj`). Do not use common names like `spotify`, as public ntfy topics can be viewed by anyone who guesses the name.
+
+3. **Configure Environment Variables**:
+   - Rename `.env.example` to `.env`.
+   - Open `.env` and fill in your actual credentials and your chosen secret topic:
+     ```env
+     SPOTIFY_CLIENT_ID=your_client_id
+     SPOTIFY_CLIENT_SECRET=your_client_secret
+     SPOTIFY_PLAYLIST_ID=6jiNsQnLOGTHZYw3dTd2nc
+     
+     NTFY_SERVER_URL=https://ntfy.sh
+     NTFY_TOPIC=your_private_random_topic
      ```
-   - Open `.env` and fill in your actual `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`.
-   - The `SPOTIFY_PLAYLIST_ID` is pre-configured to `6jiNsQnLOGTHZYw3dTd2nc`.
 
-   > **Warning**: Never commit your `.env` file to version control. It is listed in `.gitignore` by default to prevent accidental sharing of your secrets.
+   > **Warning**: Never commit your `.env` file to version control.
 
 ## Running the Watcher
 
@@ -51,44 +63,17 @@ Once your environment is activated and `.env` is configured, start the watcher:
 python -m src.watcher
 ```
 
-## Expected Output
+## Running Tests
 
-On startup, it fetches the baseline description:
-```text
-[2026-09-02 20:00:00] Initial description: "Some description here"
-[2026-09-02 20:00:00] Watching for changes every 60 seconds...
+You can verify the watcher's logic and notification functionality using pytest:
+
+```powershell
+python -m pytest
 ```
 
-Every 60 seconds, it checks for changes:
-```text
-[2026-09-02 20:01:00] Checking playlist...
-[2026-09-02 20:01:00] No change.
-```
+## Behavior & Error Handling
 
-If a change is detected:
-```text
-[2026-09-02 20:02:00] Checking playlist...
-
-==================================================
-CHANGE DETECTED
-==================================================
-
-Old:
-Some description here
-
-New:
-New description!
-
-Detected:
-2026-09-02 20:02:00
-
-==================================================
-```
-
-Press `Ctrl+C` to gracefully shut down the watcher.
-
-## Limitations (Phase 1)
-- Currently polls every 60 seconds.
-- State is kept in memory. When the application restarts, it will fetch the current description as the new baseline (it won't remember the previous description from a previous run).
-- Only outputs changes to the console (no push notifications, emails, or webhooks yet).
-- Only supports monitoring one specific playlist.
+- **Persistent State:** It stores the last valid state in `data/state.json`. On start, it resumes exactly where it left off.
+- **Null Descriptions:** If Spotify returns `null`, the watcher ignores it and retains the previous valid description. However, if Spotify returns an explicit empty string `""`, it registers as a change and you are notified.
+- **Notification Failure:** If the watcher fails to send a push notification (due to a network error or ntfy server downtime), it will simply log the error and **keep running**. The state will still be updated, so it won't repeatedly spam notifications every 60 seconds if ntfy goes down.
+- **Spotify API Errors:** Tokens are refreshed automatically on `401`. Rate limits (`429`) correctly trigger a pause, and `5xx` errors keep the application alive to retry later.
