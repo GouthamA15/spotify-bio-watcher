@@ -8,5 +8,10 @@ watcher_status = {
     "watcher_running": False,
     "successful_checks": 0,
     "failed_checks": 0,
-    "last_change_at": "Never"
+    "last_change_at": "Never",
+    "last_notification_attempt": "Never",
+    "last_notification_success": "Never",
+    "notification_success_count": 0,
+    "notification_failure_count": 0,
+    "last_notification_error": "None"
 }

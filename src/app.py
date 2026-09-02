@@ -52,6 +52,11 @@ def read_root():
                 <hr>
                 
                 <p><strong>Notification service:</strong> {ntfy_status}</p>
+                <p><strong>Last notification attempt:</strong> {watcher_status["last_notification_attempt"]}</p>
+                <p><strong>Last notification success:</strong> {watcher_status["last_notification_success"]}</p>
+                <p><strong>Notification success count:</strong> {watcher_status["notification_success_count"]}</p>
+                <p><strong>Notification failure count:</strong> {watcher_status["notification_failure_count"]}</p>
+                <p><strong>Last notification error:</strong> {watcher_status["last_notification_error"]}</p>
             </div>
         </body>
     </html>
@@ -71,7 +76,12 @@ def status_check():
         "last_successful_check": watcher_status["last_successful_check_at"],
         "successful_checks": watcher_status["successful_checks"],
         "failed_checks": watcher_status["failed_checks"],
-        "last_change": watcher_status["last_change_at"]
+        "last_change": watcher_status["last_change_at"],
+        "last_notification_attempt": watcher_status["last_notification_attempt"],
+        "last_notification_success": watcher_status["last_notification_success"],
+        "notification_success_count": watcher_status["notification_success_count"],
+        "notification_failure_count": watcher_status["notification_failure_count"],
+        "last_notification_error": watcher_status["last_notification_error"]
     }
 
 if __name__ == "__main__":
