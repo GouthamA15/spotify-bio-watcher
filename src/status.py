@@ -1,8 +1,12 @@
 from datetime import datetime
+import zoneinfo
+
+def get_ist_time_str() -> str:
+    return datetime.now(zoneinfo.ZoneInfo('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S IST")
 
 # Shared in-memory status object
 watcher_status = {
-    "started_at": datetime.now().isoformat(),
+    "started_at": get_ist_time_str(),
     "last_check_at": "Never",
     "last_successful_check_at": "Never",
     "watcher_running": False,

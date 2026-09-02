@@ -1,4 +1,5 @@
 import requests
+import zoneinfo
 from typing import Optional
 from .config import NTFY_TOPIC, NTFY_SERVER_URL, REQUEST_TIMEOUT_SECONDS, NTFY_ACCESS_TOKEN
 from .status import watcher_status
@@ -8,7 +9,7 @@ def send_notification(old_description: Optional[str], new_description: Optional[
     """
     Sends a push notification to ntfy.sh with the old and new playlist description.
     """
-    attempt_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    attempt_time = datetime.now(zoneinfo.ZoneInfo('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S IST")
     watcher_status["last_notification_attempt"] = attempt_time
 
     if not NTFY_TOPIC:

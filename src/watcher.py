@@ -1,5 +1,6 @@
 import time
 import sys
+import zoneinfo
 from datetime import datetime
 from .config import validate_config, POLL_INTERVAL_SECONDS, SPOTIFY_PLAYLIST_ID
 from .spotify import fetch_playlist_description, SpotifyAuthError, SpotifyRequestError
@@ -8,7 +9,7 @@ from .notifier import send_notification
 from .status import watcher_status
 
 def get_full_time_str() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now(zoneinfo.ZoneInfo('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S IST")
 
 def log(message: str):
     print(f"[{get_full_time_str()}] {message}")
