@@ -13,6 +13,7 @@ REQUEST_TIMEOUT_SECONDS = 10
 
 NTFY_TOPIC = os.getenv("NTFY_TOPIC")
 NTFY_SERVER_URL = os.getenv("NTFY_SERVER_URL", "https://ntfy.sh").rstrip("/")
+NTFY_ACCESS_TOKEN = os.getenv("NTFY_ACCESS_TOKEN")
 
 def validate_config():
     missing = []

@@ -1,6 +1,6 @@
 import requests
 from typing import Optional
-from .config import NTFY_TOPIC, NTFY_SERVER_URL, REQUEST_TIMEOUT_SECONDS
+from .config import NTFY_TOPIC, NTFY_SERVER_URL, REQUEST_TIMEOUT_SECONDS, NTFY_ACCESS_TOKEN
 from .status import watcher_status
 from datetime import datetime
 
@@ -46,6 +46,11 @@ def send_notification(old_description: Optional[str], new_description: Optional[
         "Priority": "high",
         "Tags": "musical_note"
     }
+
+    if NTFY_ACCESS_TOKEN:
+        headers["Authorization"] = f"Bearer {NTFY_ACCESS_TOKEN.strip()}"
+        print("[NOTIFIER] Using authenticated request via NTFY_ACCESS_TOKEN.")
+
     
     try:
         print("[NOTIFIER] NTFY request starting...")

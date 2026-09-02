@@ -51,6 +51,7 @@ A simple Python command-line application that monitors the description (bio) of 
      
      NTFY_SERVER_URL=https://ntfy.sh
      NTFY_TOPIC=your_private_random_topic
+     NTFY_ACCESS_TOKEN=your_ntfy_access_token_here
      ```
 
 ## Running Locally
