@@ -1,5 +1,6 @@
 import base64
 import requests
+import time
 from typing import Optional
 from .config import (
     SPOTIFY_CLIENT_ID, 
@@ -16,19 +17,50 @@ class SpotifyRequestError(Exception):
         super().__init__(message)
         self.retry_after = retry_after
 
-_cached_token = None
+class ClientPool:
+    def __init__(self, client_ids_str: str, client_secrets_str: str):
+        self.clients = []
+        ids = [i.strip() for i in (client_ids_str or "").split(",") if i.strip()]
+        secrets = [s.strip() for s in (client_secrets_str or "").split(",") if s.strip()]
+        
+        for cid, csec in zip(ids, secrets):
+            self.clients.append({
+                "id": cid,
+                "secret": csec,
+                "token": None,
+                "penalty_until": 0
+            })
+        self.current_idx = 0
 
-def _get_access_token() -> str:
-    """
-    Fetch an access token using the Client Credentials flow.
-    Caches token in memory.
-    """
-    global _cached_token
-    if _cached_token:
-        return _cached_token
+    def get_active_client(self):
+        now = time.time()
+        for i in range(len(self.clients)):
+            idx = (self.current_idx + i) % len(self.clients)
+            if self.clients[idx]["penalty_until"] <= now:
+                self.current_idx = idx
+                return self.clients[idx]
+        return None
+
+    def penalize_current(self, retry_after: int):
+        self.clients[self.current_idx]["penalty_until"] = time.time() + retry_after
+        self.clients[self.current_idx]["token"] = None
+
+    def force_refresh_current(self):
+        self.clients[self.current_idx]["token"] = None
+
+pool = None
+
+def init_pool():
+    global pool
+    if pool is None:
+        pool = ClientPool(SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET)
+
+def _get_access_token(client) -> str:
+    if client["token"]:
+        return client["token"]
         
     url = "https://accounts.spotify.com/api/token"
-    auth_string = f"{SPOTIFY_CLIENT_ID}:{SPOTIFY_CLIENT_SECRET}"
+    auth_string = f"{client['id']}:{client['secret']}"
     auth_base64 = base64.b64encode(auth_string.encode("utf-8")).decode("utf-8")
 
     headers = {
@@ -43,22 +75,25 @@ def _get_access_token() -> str:
         response = requests.post(url, headers=headers, data=data, timeout=REQUEST_TIMEOUT_SECONDS)
         response.raise_for_status()
         token_data = response.json()
-        _cached_token = token_data.get("access_token")
-        return _cached_token
+        client["token"] = token_data.get("access_token")
+        return client["token"]
     except requests.exceptions.RequestException as e:
         raise SpotifyAuthError(f"Failed to authenticate with Spotify: {e}")
 
 def force_refresh_token():
-    global _cached_token
-    _cached_token = None
+    init_pool()
+    pool.force_refresh_current()
 
 def fetch_playlist_description(is_retry=False) -> Optional[str]:
-    """
-    Fetch the playlist description using the Spotify Web API.
-    Handles HTTP status codes as requested.
-    Returns the description as a string, or None if it's explicitly null.
-    """
-    token = _get_access_token()
+    init_pool()
+    client = pool.get_active_client()
+    
+    if not client:
+        now = time.time()
+        min_penalty = min(c["penalty_until"] for c in pool.clients) - now
+        raise SpotifyRequestError(f"All {len(pool.clients)} Spotify Client IDs are rate-limited.", retry_after=int(min_penalty) + 1)
+
+    token = _get_access_token(client)
     
     url = f"https://api.spotify.com/v1/playlists/{SPOTIFY_PLAYLIST_ID}?fields=description"
     headers = {
@@ -74,7 +109,7 @@ def fetch_playlist_description(is_retry=False) -> Optional[str]:
         
     if response.status_code == 401:
         if not is_retry:
-            force_refresh_token()
+            pool.force_refresh_current()
             return fetch_playlist_description(is_retry=True)
         else:
             raise SpotifyRequestError("Authentication error (401). Retried and failed.")
@@ -87,7 +122,14 @@ def fetch_playlist_description(is_retry=False) -> Optional[str]:
 
     if response.status_code == 429:
         retry_after = int(response.headers.get("Retry-After", 5))
-        raise SpotifyRequestError("Rate limited (429).", retry_after=retry_after)
+        pool.penalize_current(retry_after)
+        print(f"[SPOTIFY] Client ID ending in ...{client['id'][-5:]} rate-limited. Rotating to next ID.")
+        
+        # We can safely retry once immediately with the next client
+        if not is_retry:
+            return fetch_playlist_description(is_retry=True)
+        else:
+            raise SpotifyRequestError("Rate limited (429) across multiple clients.")
 
     if response.status_code >= 500:
         raise SpotifyRequestError(f"Spotify server error ({response.status_code}).")

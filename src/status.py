@@ -2,7 +2,7 @@ from datetime import datetime
 import zoneinfo
 
 def get_ist_time_str() -> str:
-    return datetime.now(zoneinfo.ZoneInfo('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S IST")
+    return datetime.now(zoneinfo.ZoneInfo('Asia/Kolkata')).strftime("%Y-%m-%d %I:%M:%S %p IST")
 
 # Shared in-memory status object
 watcher_status = {
@@ -17,5 +17,8 @@ watcher_status = {
     "last_notification_success": "Never",
     "notification_success_count": 0,
     "notification_failure_count": 0,
-    "last_notification_error": "None"
+    "last_notification_error": "None",
+    "last_spotify_error": "None",
+    "last_spotify_error_time": "Never",
+    "spotify_error_notified": False
 }

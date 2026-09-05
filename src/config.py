@@ -17,9 +17,9 @@ NTFY_ACCESS_TOKEN = os.getenv("NTFY_ACCESS_TOKEN")
 
 def validate_config():
     missing = []
-    if not SPOTIFY_CLIENT_ID or SPOTIFY_CLIENT_ID == "your_client_id":
+    if not SPOTIFY_CLIENT_ID or "your_client_id" in SPOTIFY_CLIENT_ID:
         missing.append("SPOTIFY_CLIENT_ID")
-    if not SPOTIFY_CLIENT_SECRET or SPOTIFY_CLIENT_SECRET == "your_client_secret":
+    if not SPOTIFY_CLIENT_SECRET or "your_client_secret" in SPOTIFY_CLIENT_SECRET:
         missing.append("SPOTIFY_CLIENT_SECRET")
     if not SPOTIFY_PLAYLIST_ID:
         missing.append("SPOTIFY_PLAYLIST_ID")

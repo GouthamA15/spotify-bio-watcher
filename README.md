@@ -45,8 +45,9 @@ A simple Python command-line application that monitors the description (bio) of 
    - Rename `.env.example` to `.env`.
    - Open `.env` and fill in your actual credentials and your chosen secret topic:
      ```env
-     SPOTIFY_CLIENT_ID=your_client_id
-     SPOTIFY_CLIENT_SECRET=your_client_secret
+     # Separate multiple IDs with commas to bypass rate limits!
+     SPOTIFY_CLIENT_ID=your_client_id_1,your_client_id_2
+     SPOTIFY_CLIENT_SECRET=your_client_secret_1,your_client_secret_2
      SPOTIFY_PLAYLIST_ID=6jiNsQnLOGTHZYw3dTd2nc
      
      NTFY_SERVER_URL=https://ntfy.sh

@@ -27,36 +27,46 @@ def read_root():
         <head>
             <title>Spotify Bio Watcher</title>
             <style>
-                body {{ font-family: sans-serif; padding: 2rem; line-height: 1.6; max-width: 600px; margin: 0 auto; }}
-                h1 {{ color: #1DB954; }}
-                .status {{ background: #f4f4f4; padding: 1rem; border-radius: 5px; }}
+                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 2rem; line-height: 1.6; max-width: 650px; margin: 0 auto; color: #333; }}
+                h1 {{ color: #1DB954; display: flex; align-items: center; gap: 10px; }}
+                .status-card {{ background: #f9f9f9; padding: 1.5rem; border-radius: 8px; border: 1px solid #e1e1e1; margin-bottom: 1.5rem; }}
+                .status-card h3 {{ margin-top: 0; color: #555; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; }}
+                .data-row {{ display: flex; justify-content: space-between; margin-bottom: 0.5rem; border-bottom: 1px dashed #eee; padding-bottom: 0.25rem; }}
+                .data-row:last-child {{ border-bottom: none; }}
+                .error-alert {{ background: #fff3f3; color: #d32f2f; padding: 1rem; border-left: 5px solid #d32f2f; border-radius: 4px; margin-top: 1rem; font-weight: 500; }}
             </style>
         </head>
         <body>
             <h1>Spotify Bio Watcher</h1>
             
-            <div class="status">
-                <p><strong>Status:</strong> {is_running}</p>
-                <p><strong>Playlist:</strong> Configured ({SPOTIFY_PLAYLIST_ID})</p>
-                <p><strong>Polling interval:</strong> {POLL_INTERVAL_SECONDS} seconds</p>
+            <div class="status-card">
+                <h3>System Info</h3>
+                <div class="data-row"><span>Status:</span> <strong>{is_running}</strong></div>
+                <div class="data-row"><span>Playlist:</span> <strong>{SPOTIFY_PLAYLIST_ID}</strong></div>
+                <div class="data-row"><span>Polling interval:</span> <strong>{POLL_INTERVAL_SECONDS} seconds</strong></div>
+                <div class="data-row"><span>Started at:</span> <strong>{watcher_status["started_at"]}</strong></div>
+            </div>
+
+            <div class="status-card">
+                <h3>Spotify Polling</h3>
+                <div class="data-row"><span>Last check:</span> <strong>{watcher_status["last_check_at"]}</strong></div>
+                <div class="data-row"><span>Last successful check:</span> <strong>{watcher_status["last_successful_check_at"]}</strong></div>
+                <div class="data-row"><span>Successful checks:</span> <strong>{watcher_status["successful_checks"]}</strong></div>
+                <div class="data-row"><span>Failed checks:</span> <strong>{watcher_status["failed_checks"]}</strong></div>
+                <div class="data-row"><span>Last bio change:</span> <strong>{watcher_status["last_change_at"]}</strong></div>
                 
-                <hr>
+                {f'<div class="error-alert">⚠️ Spotify API Error: {watcher_status["last_spotify_error"]}<br><small>Detected at: {watcher_status["last_spotify_error_time"]}</small></div>' if watcher_status["last_spotify_error"] != "None" else ""}
+            </div>
+            
+            <div class="status-card">
+                <h3>Notifications (NTFY)</h3>
+                <div class="data-row"><span>Service:</span> <strong>{ntfy_status}</strong></div>
+                <div class="data-row"><span>Last attempt:</span> <strong>{watcher_status["last_notification_attempt"]}</strong></div>
+                <div class="data-row"><span>Last success:</span> <strong>{watcher_status["last_notification_success"]}</strong></div>
+                <div class="data-row"><span>Success count:</span> <strong>{watcher_status["notification_success_count"]}</strong></div>
+                <div class="data-row"><span>Failure count:</span> <strong>{watcher_status["notification_failure_count"]}</strong></div>
                 
-                <p><strong>Started at:</strong> {watcher_status["started_at"]}</p>
-                <p><strong>Last check:</strong> {watcher_status["last_check_at"]}</p>
-                <p><strong>Last successful check:</strong> {watcher_status["last_successful_check_at"]}</p>
-                <p><strong>Successful checks:</strong> {watcher_status["successful_checks"]}</p>
-                <p><strong>Failed checks:</strong> {watcher_status["failed_checks"]}</p>
-                <p><strong>Last change detected:</strong> {watcher_status["last_change_at"]}</p>
-                
-                <hr>
-                
-                <p><strong>Notification service:</strong> {ntfy_status}</p>
-                <p><strong>Last notification attempt:</strong> {watcher_status["last_notification_attempt"]}</p>
-                <p><strong>Last notification success:</strong> {watcher_status["last_notification_success"]}</p>
-                <p><strong>Notification success count:</strong> {watcher_status["notification_success_count"]}</p>
-                <p><strong>Notification failure count:</strong> {watcher_status["notification_failure_count"]}</p>
-                <p><strong>Last notification error:</strong> {watcher_status["last_notification_error"]}</p>
+                {f'<div class="error-alert">⚠️ Notification Error: {watcher_status["last_notification_error"]}</div>' if watcher_status["last_notification_error"] != "None" else ""}
             </div>
         </body>
     </html>
@@ -77,6 +87,8 @@ def status_check():
         "successful_checks": watcher_status["successful_checks"],
         "failed_checks": watcher_status["failed_checks"],
         "last_change": watcher_status["last_change_at"],
+        "last_spotify_error": watcher_status["last_spotify_error"],
+        "last_spotify_error_time": watcher_status["last_spotify_error_time"],
         "last_notification_attempt": watcher_status["last_notification_attempt"],
         "last_notification_success": watcher_status["last_notification_success"],
         "notification_success_count": watcher_status["notification_success_count"],
